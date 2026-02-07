@@ -1,7 +1,7 @@
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt
-from database import SessionLocal
+from db.database import SessionLocal
 from models import User
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")

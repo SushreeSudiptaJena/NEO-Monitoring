@@ -1,0 +1,439 @@
+{
+  "info": {
+    "name": "NEO Monitoring API",
+    "_postman_id": "c1f9c6f0-4c5d-4a1b-9b53-neo-monitoring",
+    "description": "Postman collection for NEO Monitoring backend endpoints (Feed, Lookup, User Profiles, Watchlist, Alerts).\n\nHow to use:\n1) Set collection variables: baseUrl, email, password, start_date, end_date\n2) Run Auth → Register (optional)\n3) Run Auth → Login (stores bearer token in variable `token`)\n4) Run any protected endpoints\n\nAuth:\n- Uses OAuth2 password flow: POST /auth/login with x-www-form-urlencoded fields `username` and `password`.\n",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8000" },
+    { "key": "email", "value": "test@example.com" },
+    { "key": "password", "value": "test1234" },
+    { "key": "token", "value": "" },
+    { "key": "start_date", "value": "" },
+    { "key": "end_date", "value": "" },
+    { "key": "neo_id", "value": "" },
+    { "key": "watch_id", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET / (health)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON response', () => pm.response.to.be.json);",
+                  "const json = pm.response.json();",
+                  "pm.test('Has status field', () => pm.expect(json).to.have.property('status'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/", "host": ["{{baseUrl}}"], "path": [""] }
+          }
+        },
+        {
+          "name": "GET /openapi.json",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON response', () => pm.response.to.be.json);",
+                  "const json = pm.response.json();",
+                  "pm.test('OpenAPI has paths', () => pm.expect(json).to.have.property('paths'));",
+                  "pm.test('Has /neo/today', () => pm.expect(json.paths).to.have.property('/neo/today'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/openapi.json"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "POST /auth/register (query params)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 or 400 (already exists)', () => pm.expect(pm.response.code).to.be.oneOf([200, 400]));",
+                  "pm.test('JSON response', () => pm.response.to.be.json);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/auth/register?email={{email}}&password={{password}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"],
+              "query": [
+                { "key": "email", "value": "{{email}}" },
+                { "key": "password", "value": "{{password}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /auth/login (form) → sets token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON response', () => pm.response.to.be.json);",
+                  "const json = pm.response.json();",
+                  "pm.test('Has access_token', () => pm.expect(json).to.have.property('access_token'));",
+                  "if (json && json.access_token) {",
+                  "  pm.collectionVariables.set('token', json.access_token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "username", "value": "{{email}}" },
+                { "key": "password", "value": "{{password}}" }
+              ]
+            },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        },
+        {
+          "name": "GET /auth/me (profile)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON response', () => pm.response.to.be.json);",
+                  "const json = pm.response.json();",
+                  "pm.test('Has email', () => pm.expect(json).to.have.property('email'));",
+                  "pm.test('Has watchlist_count', () => pm.expect(json).to.have.property('watchlist_count'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/auth/me"
+          }
+        }
+      ]
+    },
+    {
+      "name": "NEO",
+      "item": [
+        {
+          "name": "GET /neo/today (feed) → sets neo_id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON response', () => pm.response.to.be.json);",
+                  "const arr = pm.response.json();",
+                  "pm.test('Is array', () => pm.expect(Array.isArray(arr)).to.eql(true));",
+                  "if (Array.isArray(arr) && arr.length > 0) {",
+                  "  pm.test('First item has id', () => pm.expect(arr[0]).to.have.property('id'));",
+                  "  pm.collectionVariables.set('neo_id', arr[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/neo/today?start_date={{start_date}}&end_date={{end_date}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["neo", "today"],
+              "query": [
+                { "key": "start_date", "value": "{{start_date}}" },
+                { "key": "end_date", "value": "{{end_date}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /neo/lookup/{{neo_id}} (lookup)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON response', () => pm.response.to.be.json);",
+                  "const json = pm.response.json();",
+                  "pm.test('Has id + name', () => { pm.expect(json).to.have.property('id'); pm.expect(json).to.have.property('name'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/neo/lookup/{{neo_id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Watchlist (protected)",
+      "item": [
+        {
+          "name": "GET /auth/watchlist → sets watch_id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON response', () => pm.response.to.be.json);",
+                  "const arr = pm.response.json();",
+                  "pm.test('Is array', () => pm.expect(Array.isArray(arr)).to.eql(true));",
+                  "if (Array.isArray(arr) && arr.length > 0) {",
+                  "  pm.collectionVariables.set('watch_id', arr[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/auth/watchlist"
+          }
+        },
+        {
+          "name": "POST /auth/watch (save)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON response', () => pm.response.to.be.json);",
+                  "const json = pm.response.json();",
+                  "pm.test('Has message', () => pm.expect(json).to.have.property('message'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"neo_id\": \"{{neo_id}}\",\n  \"name\": \"Sample NEO\",\n  \"risk_score\": 42.0,\n  \"diameter_km\": 0.123,\n  \"velocity_km_s\": 12.34,\n  \"miss_distance_km\": 1234567,\n  \"close_approach_date\": \"2026-02-08\",\n  \"hazardous\": false,\n  \"risk_level\": \"Medium\",\n  \"alert_risk_threshold\": 50,\n  \"alert_window_hours\": 72\n}"
+            },
+            "url": "{{baseUrl}}/auth/watch"
+          }
+        },
+        {
+          "name": "PUT /auth/watch/{{watch_id}}/alert-settings",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON response', () => pm.response.to.be.json);",
+                  "const json = pm.response.json();",
+                  "pm.test('Has message', () => pm.expect(json).to.have.property('message'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"alert_risk_threshold\": 60,\n  \"alert_window_hours\": 96\n}"
+            },
+            "url": "{{baseUrl}}/auth/watch/{{watch_id}}/alert-settings"
+          }
+        },
+        {
+          "name": "DELETE /auth/watch/{{watch_id}}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON response', () => pm.response.to.be.json);",
+                  "const json = pm.response.json();",
+                  "pm.test('Has message', () => pm.expect(json).to.have.property('message'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/auth/watch/{{watch_id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Alerts (protected)",
+      "item": [
+        {
+          "name": "GET /alerts?unread_only=false",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON response', () => pm.response.to.be.json);",
+                  "const arr = pm.response.json();",
+                  "pm.test('Is array', () => pm.expect(Array.isArray(arr)).to.eql(true));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/alerts?unread_only=false",
+              "host": ["{{baseUrl}}"],
+              "path": ["alerts"],
+              "query": [
+                { "key": "unread_only", "value": "false" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /alerts/mark-read",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON response', () => pm.response.to.be.json);",
+                  "const json = pm.response.json();",
+                  "pm.test('Has message', () => pm.expect(json).to.have.property('message'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/alerts/mark-read"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Negative (auth required)",
+      "item": [
+        {
+          "name": "GET /auth/me (no token) → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));",
+                  "pm.test('JSON response', () => pm.response.to.be.json);",
+                  "const json = pm.response.json();",
+                  "pm.test('Has detail', () => pm.expect(json).to.have.property('detail'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/auth/me"
+          }
+        },
+        {
+          "name": "GET /alerts (no token) → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));",
+                  "pm.test('JSON response', () => pm.response.to.be.json);",
+                  "const json = pm.response.json();",
+                  "pm.test('Has detail', () => pm.expect(json).to.have.property('detail'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/alerts"
+          }
+        }
+      ]
+    }
+  ]
+}
