@@ -27,7 +27,7 @@ app.add_middleware(
 
 @app.get("/")
 def health_check():
-    return {"status": "Cosmic Watch backend running 🚀"}
+    return {"status": "NEO Monitoring backend running 🚀"}
 
 
 app.include_router(neo_router)
