@@ -1,9 +1,20 @@
 ## NEO Monitoring
 
-Full-stack Near-Earth Object (NEO) monitoring app:
-- FastAPI backend (auth, watchlist, alerts, NASA feed + lookup)
-- React/Vite frontend dashboard
-- Postgres database (Docker)
+Full-stack Near-Earth Object (NEO) monitoring app powered by NASA NeoWs.
+
+### What it does
+
+- **Dashboard:** shows today’s NEO feed and basic risk signals
+- **Watchlist:** save NEOs you care about and track them over time
+- **Alerts:** notifications generated for saved items (read/unread)
+- **Auth:** register + login (JWT) to access protected pages
+
+### Tech stack
+
+- **Backend:** FastAPI + SQLAlchemy + JWT auth + APScheduler
+- **Frontend:** React + Vite + React Router + Axios
+- **Database:** Postgres (Docker)
+- **Data source:** NASA NeoWs (feed + lookup)
 
 ### Run (Docker Compose)
 
@@ -21,6 +32,30 @@ Services:
 Environment variables:
 - `NASA_API_KEY` (optional): NASA NeoWs API key. If not set, `docker-compose.yml` provides a default.
 - `FRONTEND_PORT` (optional): defaults to `5173`.
+
+Notes:
+- If you hit NASA rate limits, the backend returns an HTTP `429` with a clear message.
+
+### Run (Local development)
+
+Backend:
+
+```bash
+cd backend
+python -m venv .venv
+# Windows PowerShell:
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+uvicorn main:app --reload --host 127.0.0.1 --port 8000
+```
+
+Frontend:
+
+```bash
+cd frontend/neo-dashboard
+npm install
+npm run dev
+```
 
 ### API Endpoints (Backend)
 
@@ -42,6 +77,13 @@ Watchlist:
 Alerts:
 - `GET /alerts` — List alerts (default `unread_only=true`) (requires Bearer token)
 - `POST /alerts/mark-read` — Mark all alerts as read (requires Bearer token)
+
+### UI notes
+
+- The login page uses an animated **Galaxy** background (WebGL via `ogl`).
+- The “Know your space rocks” section displays JPEGs from:
+	- `frontend/neo-dashboard/public/space-rocks/`
+	- Filenames used by default: `asteroid.jpeg`, `comet.jpeg`, `meteor.jpeg`, `meteorite.jpeg`, `bolide.jpeg`
 
 ### Postman Collection
 
